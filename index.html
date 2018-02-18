@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Devcon</title>
+
+    <link rel="stylesheet" type="text/css" href="main.css">
+
+    <script src="web3.min.js"></script>
+
+</head>
+<body class="bg">
+    <div class="container">
+
+        <h1><b>Devcon Conference</b> - <i>Blockchain Tickets</i></h1>
+        <!--<span class="details">March 18th, 2018 (ticket price: 1 ether)</span>-->
+        <br><br>
+        
+        <img id="loader" src="https://loading.io/spinners/wave/lg.wave-ball-preloader.gif">
+
+        <label for="name" class="col-lg-2 control-label">Name</label>
+        <input id="name" type="text">
+
+        <label for="email" class="col-lg-2 control-label">Email</label>
+        <input id="email" type="text">
+
+
+        <button id="purchase" >Puchase Ticket</button>
+
+        <span id="confirmTicketAddress"></span>
+        <h1 id="confirmMessage"></h1>
+        <h2 id="confirmTicketDetails"></h2>
+        <span id="confirmBlock"></span>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        --------------------------------------------------------------------------
+        <button id="refund" >Refund Ticket</button>
+        <img id="loader2" src="https://loading.io/spinners/wave/lg.wave-ball-preloader.gif">
+        <h2 id="confirmRefundDetails"></h2>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+
+    <script>
+
+        //Web3 Provier
+       if (typeof web3 !== 'undefined') {
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+        }
+        web3.eth.defaultAccount = web3.eth.accounts[0];
+
+        var DevconContract = web3.eth.contract([{"constant":true,"inputs":[],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"TICKET_PRICE","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"bytes32"},{"name":"_email","type":"bytes32"}],"name":"PurchaseTicket","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[],"name":"eventDate","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"RefundTicket","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"ticketHolders","outputs":[{"name":"name","type":"bytes32"},{"name":"email","type":"bytes32"},{"name":"registrationDate","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_address","type":"address"}],"name":"GetTicketDetail","outputs":[{"name":"","type":"bytes32"},{"name":"","type":"bytes32"},{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"eventName","outputs":[{"name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalTickets","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"ticketRefundValidity","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"CleanDevcon","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"payable":true,"stateMutability":"payable","type":"fallback"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_address","type":"address"},{"indexed":false,"name":"_name","type":"bytes32"},{"indexed":false,"name":"_email","type":"bytes32"},{"indexed":false,"name":"_registrationDate","type":"uint256"}],"name":"ticketPurchased","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"previousOwner","type":"address"},{"indexed":true,"name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"}]);
+        var Devcon = DevconContract.at('0x3052DbE81cb4DfAbc8221B1e60D3eE0Da1cDeA1C');
+
+        var DevconEvent = Devcon.ticketPurchased();
+        //var DevconEvent = Devcon.ticketPurchased({}, {fromBlock: 0, toBlock: 'latest'});
+
+        //Event watch
+        DevconEvent.watch(function(error, result) {
+           if (result) {
+               if (result.blockHash != $("#confirmBlock").html())
+                    $("#loader").hide();
+
+               $("#confirmTicketAddress").html('Ticket Address: ' + result.args._address);
+               $("#confirmMessage").html('Ticket purchased successfully!');
+               $("#confirmTicketDetails").html('Name:'+ web3.toAscii(result.args._name) + ' Email:' + web3.toAscii(result.args._email) + '<br> Date:' + new Date(result.args._registrationDate * 1000));
+               $("#confirmBlock").html('Block Hash: ' + result.blockHash);
+           } else {
+                $("#loader").hide();
+           }
+       });
+
+       //Purchase ticket
+        $("#purchase").click(function() {
+            $("#loader").show();
+
+            Devcon.PurchaseTicket($("#name").val(), $("#email").val(), {from: web3.eth.defaultAccount, gas: 3000000, value: web3.toWei('1','ether')}, (err, res) => {
+               if (err) {
+                   $("#loader").hide();
+                   $("#confirmTicketDetails").html(err);
+               }
+           });
+       });
+
+       //Refund ticket
+       $("#refund").click(function() {
+            $("#loader2").show();
+
+            Devcon.RefundTicket({from: web3.eth.defaultAccount, gas: 3000000}, (err, result) => {
+               if (!err) {
+                    $("#loader2").hide();
+                    $("#confirmRefundDetails").html('Refund applied successfully!');
+               }
+               else
+               {
+                    $("#loader2").hide();
+                    $("#confirmRefundDetails").html(err);
+               }
+           });
+       });
+
+    </script>
+
+</body>
+</html>
